@@ -1,0 +1,11 @@
+.env
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.webm
+*.gif
+*.mp3
+*.mp4
+
+/certs
