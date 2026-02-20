@@ -1,17 +1,17 @@
 package app
 
 import (
+	"storage-service/internal/config"
 	"storage-service/internal/delivery/http_handlers"
 	"storage-service/internal/server"
 	"storage-service/internal/service"
-	"time"
 )
 
-func Run(port string, timeout time.Duration) {
-	storageService := service.NewStorageService("storage/memes/")
+func Run(cfg *config.Config) {
+	storageService := service.NewStorageService(cfg.StoragePath)
 	storageHandler := http_handlers.NewImagesHandler(storageService)
 
 	handler := server.NewRouter(storageHandler)
 
-	server.StartServer(handler, port, timeout)
+	server.StartServer(handler, cfg.Port, cfg.Timeout)
 }

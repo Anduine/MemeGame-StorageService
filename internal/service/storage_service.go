@@ -3,7 +3,7 @@ package service
 import (
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"mime/multipart"
 	"os"
 	"path/filepath"
@@ -19,41 +19,55 @@ func NewStorageService(path string) *StorageService {
 	}
 }
 
-func (s *StorageService) GetImage(filename string) string {
-	fileFullPath := fmt.Sprint(s.storagePath, filename)	
-
-	log.Printf("Запрашиваемый файл: %s", fileFullPath)
+func (s *StorageService) GetImage(packageName, fileName string) string {
+	fileFullPath := fmt.Sprint(s.storagePath, packageName, fileName)
 
 	if _, err := os.Stat(fileFullPath); os.IsNotExist(err) {
+		slog.Debug("Не знайдено файл", "filename", fileFullPath)
 		return ""
 	}
 
 	ext := filepath.Ext(fileFullPath)
-	if ext != ".webp" && ext != ".png" && ext != ".jpg" && ext != ".jpeg"{
+	if ext != ".webp" && ext != ".png" && ext != ".jpg" && ext != ".jpeg" {
 		return ""
 	}
+
+	slog.Debug("Знайдено файл", "filename", fileFullPath)
 
 	return fileFullPath
 }
 
-func (s *StorageService) SaveImage(file multipart.File, fileName string) (string, error) {
-	// Убедимся, что директория существует
-	err := os.MkdirAll(s.storagePath, os.ModePerm)
-	if err != nil {
-		return "", fmt.Errorf("не удалось создать папку для загрузки: %v", err)
+func (s *StorageService) SaveImage(file multipart.File, packageName, fileName string) (string, error) {
+	fullDir := filepath.Join(s.storagePath, packageName)
+
+	if err := os.MkdirAll(fullDir, 0755); err != nil {
+		return "", fmt.Errorf("не вдалося створити папку: %v", err)
 	}
 
-	dstPath := filepath.Join(s.storagePath, fileName)
-	dst, err := os.Create(dstPath)
-	if err != nil {
-		return "", fmt.Errorf("не удалось создать файл: %v", err)
-	}
-	defer dst.Close()
+	dstPath := filepath.Join(fullDir, fileName)
 
-	_, err = io.Copy(dst, file)
+	dstFile, err := os.Create(dstPath)
 	if err != nil {
-		return "", fmt.Errorf("не удалось сохранить файл: %v", err)
+		return "", fmt.Errorf("не вдалося створити файл: %v", err)
+	}
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, file)
+	if err != nil {
+		return "", fmt.Errorf("не вдалося зберігти файл: %v", err)
 	}
 
 	return fileName, nil
+}
+
+func (s *StorageService) DeleteImage(packageName, fileName string) error {
+	safeName := filepath.Base(fileName)
+	fullPath := filepath.Join(s.storagePath, packageName, safeName)
+
+	err := os.Remove(fullPath)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	return nil
 }

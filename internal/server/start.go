@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -24,19 +23,19 @@ func StartServer(router http.Handler, port string, timeout time.Duration) {
 
 	// Запуск сервера в отдельной горутине
 	go func() {
-		log.Println("Storage service running on port:", port)
+		slog.Info("Storage service running on port: " + port)
 		err := server.ListenAndServe() //"certs/cert.pem", "certs/key.pem"
 		if err != nil && err != http.ErrServerClosed {
-			log.Fatal("Server error: ", slog.Any("Error", err))
+			slog.Error("Server error: ", "Error", err)
 		}
 	}()
 
 	// Ожидание сигнала завершения
 	<-stop
-	log.Println("Shutting down server...")
+	slog.Info("Shutting down server...")
 
 	// Завершение работы сервера
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	log.Println("Shutdown ", slog.Any("stopcode", server.Shutdown(ctx)))
+	slog.Info("Shutdown ", "stopcode", server.Shutdown(ctx))
 }

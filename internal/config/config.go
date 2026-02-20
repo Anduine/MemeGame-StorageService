@@ -9,8 +9,9 @@ import (
 )
 
 type Config struct {
-	Port        string   		`yaml:"port"`
-	Timeout     time.Duration 	`yaml:"timeout"`
+	Port        string        `yaml:"port"`
+	Timeout     time.Duration `yaml:"timeout"`
+	StoragePath string
 }
 
 func MustLoadConfig() *Config {
@@ -31,6 +32,8 @@ func MustLoadConfig() *Config {
 		panic("Failed to unmarshal yaml")
 	}
 
+	cfg.StoragePath = getStoragePath()
+
 	return &cfg
 }
 
@@ -46,4 +49,13 @@ func fetchConfigPath() string {
 	}
 
 	return result
+}
+
+func getStoragePath() string {
+	storagePath := os.Getenv("STORAGE_PATH")
+	if storagePath == "" {
+		storagePath = "storage/"
+	}
+
+	return storagePath
 }

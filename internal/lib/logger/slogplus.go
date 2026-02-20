@@ -10,38 +10,33 @@ import (
 	"github.com/fatih/color"
 )
 
-var Log *PlusHandler
-
 type PlusHandlerOptions struct {
 	SlogOpts *slog.HandlerOptions
 }
 
 type PlusHandler struct {
-	//opts PlusHandlerOptions
 	slog.Handler
-	logger     *stdLog.Logger
+	l     *stdLog.Logger
 	attrs []slog.Attr
 }
 
-func SetupPlusLogger(out io.Writer) {
+func InitGlobalLogger(writer io.Writer, level slog.Level) {
 	opts := PlusHandlerOptions{
 		SlogOpts: &slog.HandlerOptions{
-			Level: slog.LevelDebug,
+			Level: level,
 		},
 	}
 
-	handler := &PlusHandler{
-		Handler: slog.NewJSONHandler(out, opts.SlogOpts),
-		logger:  stdLog.New(out, "", 0),
-	}
+	handler := opts.NewPlusHandler(writer)
+	logger := slog.New(handler)
 
-	Log = handler
+	slog.SetDefault(logger)
 }
 
 func (opts PlusHandlerOptions) NewPlusHandler(out io.Writer) *PlusHandler {
 	h := &PlusHandler{
 		Handler: slog.NewJSONHandler(out, opts.SlogOpts),
-		logger:  stdLog.New(out, "", 0),
+		l:       stdLog.New(out, "", 0),
 	}
 
 	return h
@@ -83,11 +78,12 @@ func (h *PlusHandler) Handle(_ context.Context, rec slog.Record) error {
 		}
 	}
 
-	timeStr := rec.Time.Format("15:04:05.000 ")
+	timeStr := rec.Time.Format("15:04:05.000")
 	msg := color.CyanString(rec.Message)
 
-	h.logger.Println(
+	h.l.Println(
 		timeStr,
+		">",
 		level,
 		msg,
 		color.WhiteString(string(b)),
@@ -99,7 +95,7 @@ func (h *PlusHandler) Handle(_ context.Context, rec slog.Record) error {
 func (h *PlusHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return &PlusHandler{
 		Handler: h.Handler,
-		logger:  h.logger,
+		l:       h.l,
 		attrs:   attrs,
 	}
 }
@@ -107,6 +103,6 @@ func (h *PlusHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 func (h *PlusHandler) WithGroup(name string) slog.Handler {
 	return &PlusHandler{
 		Handler: h.Handler.WithGroup(name),
-		logger:  h.logger,
+		l:       h.l,
 	}
 }

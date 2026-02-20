@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log/slog"
 	"os"
 	"storage-service/internal/app"
 	"storage-service/internal/config"
@@ -10,7 +11,7 @@ import (
 func main() {
 	config := config.MustLoadConfig()
 
-	logger.SetupPlusLogger(os.Stdout)
+	logger.InitGlobalLogger(os.Stdout, slog.LevelDebug)
 
-	app.Run(config.Port, config.Timeout)
+	app.Run(config)
 }
