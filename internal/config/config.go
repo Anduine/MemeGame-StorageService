@@ -2,9 +2,11 @@ package config
 
 import (
 	"flag"
+	"log/slog"
 	"os"
 	"time"
 
+	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v3"
 )
 
@@ -52,6 +54,11 @@ func fetchConfigPath() string {
 }
 
 func getStoragePath() string {
+	err := godotenv.Load()
+	if err != nil {
+		slog.Warn("Failed to load .env file")
+	}
+
 	storagePath := os.Getenv("STORAGE_PATH")
 	if storagePath == "" {
 		storagePath = "storage/"
