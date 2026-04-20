@@ -2,6 +2,7 @@ package http_handlers
 
 import (
 	"encoding/json"
+	"log"
 	"log/slog"
 	"net/http"
 	"storage-service/internal/domain"
@@ -109,8 +110,8 @@ func (h *ImagesHandler) GetAvatar(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, filePath)
 }
 
-func (h *ImagesHandler) SaveAvatar(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseMultipartForm(10 * 1024 * 1024)
+func (h *ImagesHandler) SaveImage(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseMultipartForm(30 << 20) // 30MB
 	if err != nil {
 		http.Error(w, "Помилка у формі", http.StatusBadRequest)
 		return
@@ -148,12 +149,8 @@ func (h *ImagesHandler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.DeleteImage("images/", req.Filename)
-	if err != nil {
-		slog.Info("Не вдалося видалити файл: ", "Filename", req.Filename, "Error", err)
-	}
+	log.Println("Файл успешно сохранен:", savedName)
 
-	slog.Info("Видалено файл", "filename", req.Filename)
-
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(savedName))
 }

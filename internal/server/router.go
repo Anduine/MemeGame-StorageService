@@ -29,5 +29,10 @@ func NewRouter(imageHandler *http_handlers.ImagesHandler) http.Handler {
 		http.Error(w, "Заборонений метод", http.StatusMethodNotAllowed)
 	})
 
+	router.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Метод не разрешен: %s %s", r.Method, r.URL.Path)
+		http.Error(w, "Метод не разрешен", http.StatusMethodNotAllowed)
+	})
+
 	return router
 }

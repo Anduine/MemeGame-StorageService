@@ -37,11 +37,10 @@ func (s *StorageService) GetImage(packageName, fileName string) string {
 	return fileFullPath
 }
 
-func (s *StorageService) SaveImage(file multipart.File, packageName, fileName string) (string, error) {
-	fullDir := filepath.Join(s.storagePath, packageName)
-
-	if err := os.MkdirAll(fullDir, 0755); err != nil {
-		return "", fmt.Errorf("не вдалося створити папку: %v", err)
+func (s *StorageService) SaveImage(file multipart.File, fileName string) (string, error) {
+	err := os.MkdirAll(s.storagePath, os.ModePerm)
+	if err != nil {
+		return "", fmt.Errorf("не удалось создать папку для загрузки: %v", err)
 	}
 
 	dstPath := filepath.Join(fullDir, fileName)
