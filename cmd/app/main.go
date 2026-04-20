@@ -9,9 +9,9 @@ import (
 )
 
 func main() {
-	config := config.MustLoadConfig()
-
 	logger.InitGlobalLogger(os.Stdout, slog.LevelDebug)
+
+	config := config.MustLoadConfig()
 
 	app.Run(config)
 }

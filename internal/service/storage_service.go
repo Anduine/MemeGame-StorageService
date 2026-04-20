@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 	"io"
-	"log/slog"
 	"mime/multipart"
 	"os"
 	"path/filepath"
@@ -23,7 +22,6 @@ func (s *StorageService) GetImage(packageName, fileName string) string {
 	fileFullPath := fmt.Sprint(s.storagePath, packageName, fileName)
 
 	if _, err := os.Stat(fileFullPath); os.IsNotExist(err) {
-		slog.Debug("Не знайдено файл", "filename", fileFullPath)
 		return ""
 	}
 
@@ -32,13 +30,13 @@ func (s *StorageService) GetImage(packageName, fileName string) string {
 		return ""
 	}
 
-	slog.Debug("Знайдено файл", "filename", fileFullPath)
-
 	return fileFullPath
 }
 
-func (s *StorageService) SaveImage(file multipart.File, fileName string) (string, error) {
-	err := os.MkdirAll(s.storagePath, os.ModePerm)
+func (s *StorageService) SaveImage(file multipart.File, packageName, fileName string) (string, error) {
+	fullDir := filepath.Join(s.storagePath, packageName)
+
+	err := os.MkdirAll(fullDir, 0755)
 	if err != nil {
 		return "", fmt.Errorf("не удалось создать папку для загрузки: %v", err)
 	}
@@ -47,13 +45,13 @@ func (s *StorageService) SaveImage(file multipart.File, fileName string) (string
 
 	dstFile, err := os.Create(dstPath)
 	if err != nil {
-		return "", fmt.Errorf("не вдалося створити файл: %v", err)
+		return "", fmt.Errorf("не удалось создать файл: %v", err)
 	}
 	defer dstFile.Close()
 
 	_, err = io.Copy(dstFile, file)
 	if err != nil {
-		return "", fmt.Errorf("не вдалося зберігти файл: %v", err)
+		return "", fmt.Errorf("не удалось сохранить файл: %v", err)
 	}
 
 	return fileName, nil

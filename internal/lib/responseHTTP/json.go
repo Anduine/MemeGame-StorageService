@@ -11,7 +11,7 @@ type ErrorResponse struct {
 	Code    int    `json:"code,omitempty"`
 }
 
-func JSONError(w http.ResponseWriter, code int, errMessage string) {
+func JSONError(w http.ResponseWriter, errMessage string, code int) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(code)
@@ -23,7 +23,7 @@ func JSONError(w http.ResponseWriter, code int, errMessage string) {
 	}
 }
 
-func JSONResp(w http.ResponseWriter, code int, payload any) {
+func JSONResp(w http.ResponseWriter, payload any, code int) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(code)
 	err := json.NewEncoder(w).Encode(payload)
@@ -32,7 +32,7 @@ func JSONResp(w http.ResponseWriter, code int, payload any) {
 	}
 }
 
-func JSONRespMessage(w http.ResponseWriter, code int, message string) {
+func JSONRespMessage(w http.ResponseWriter, message string, code int) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(code)
 	resp := ErrorResponse{Message: message, Code: code}

@@ -20,18 +20,13 @@ func NewRouter(imageHandler *http_handlers.ImagesHandler) http.Handler {
 	router.HandleFunc("/api/storage/delete_avatar", imageHandler.DeleteAvatar).Methods("POST")
 
 	router.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		slog.Debug("Маршрут не знайдено", "method", r.Method, "path", r.URL.Path)
-		http.Error(w, "Маршрут не знайдено", http.StatusNotFound)
+		slog.Debug("Маршрут не найден", "method", r.Method, "path", r.URL.Path)
+		http.Error(w, "Маршрут не найден", http.StatusNotFound)
 	})
 
 	router.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		slog.Debug("Заборонений метод", "method", r.Method, "path", r.URL.Path)
-		http.Error(w, "Заборонений метод", http.StatusMethodNotAllowed)
-	})
-
-	router.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Метод не разрешен: %s %s", r.Method, r.URL.Path)
-		http.Error(w, "Метод не разрешен", http.StatusMethodNotAllowed)
+		slog.Debug("Метод запрещён", "method", r.Method, "path", r.URL.Path)
+		http.Error(w, "Запрещённый метод", http.StatusMethodNotAllowed)
 	})
 
 	return router

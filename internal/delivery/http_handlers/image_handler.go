@@ -2,7 +2,6 @@ package http_handlers
 
 import (
 	"encoding/json"
-	"log"
 	"log/slog"
 	"net/http"
 	"storage-service/internal/domain"
@@ -28,7 +27,8 @@ func (h *ImagesHandler) GetImage(w http.ResponseWriter, r *http.Request) {
 	filePath := h.service.GetImage("images/", fileName)
 
 	if filePath == "" {
-		responseHTTP.JSONError(w, http.StatusNotFound, "Файл не знайдено")
+		slog.Debug("Файл не найден:", "filepath", filePath)
+		responseHTTP.JSONError(w, "Файл не найден", http.StatusNotFound)
 		return
 	}
 
@@ -36,15 +36,17 @@ func (h *ImagesHandler) GetImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ImagesHandler) SaveImages(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseMultipartForm(40 * 1024 * 1024)
+	err := r.ParseMultipartForm(30 << 20)
 	if err != nil {
-		responseHTTP.JSONError(w, http.StatusBadRequest, "Помилка у парсингу формі")
+		slog.Debug("Ошибка парсинга формы", "error", err.Error())
+		responseHTTP.JSONError(w, "Ошибка парсинга формы", http.StatusBadRequest)
 		return
 	}
 
 	files := r.MultipartForm.File["files"]
 	if len(files) == 0 {
-		responseHTTP.JSONError(w, http.StatusBadRequest, "Файли не знайдено")
+		slog.Debug("Файлы отсутсвуют в форме")
+		responseHTTP.JSONError(w, "Файлы отсутсвуют в форме", http.StatusBadRequest)
 		return
 	}
 
@@ -54,33 +56,34 @@ func (h *ImagesHandler) SaveImages(w http.ResponseWriter, r *http.Request) {
 
 		file, err := fileHeader.Open()
 		if err != nil {
-			slog.Info("Помилка читання файлу", "filename", fileHeader.Filename, "err", err)
+			slog.Debug("Ошибка чтения файла:", "filename", fileHeader.Filename, "error", err)
 			continue
 		}
 
-		fileName := fileHeader.Filename
+		filename := fileHeader.Filename
 
-		savedName, err := h.service.SaveImage(file, "images/", fileName)
+		savedName, err := h.service.SaveImage(file, "images/", filename)
 		file.Close()
 
 		if err != nil {
-			slog.Info("Помилка при збереженні файлу", "err", err.Error())
-			http.Error(w, "Помилка при збережені файлу", http.StatusInternalServerError)
+			slog.Debug("Ошибка при сохранении файла:", "filename", filename, "error", err.Error())
+			responseHTTP.JSONError(w, "Ошибка при сохранении файла", http.StatusInternalServerError)
 			return
 		}
 		savedFilenames = append(savedFilenames, savedName)
 	}
 
-	slog.Debug("Успішно збережено файлів", "count", len(savedFilenames))
+	slog.Debug("Файлы успешно сохранены:", "count", len(savedFilenames))
 
-	responseHTTP.JSONResp(w, http.StatusCreated, savedFilenames)
+	responseHTTP.JSONResp(w, savedFilenames, http.StatusCreated)
 }
 
 func (h *ImagesHandler) DeleteImages(w http.ResponseWriter, r *http.Request) {
 	var req domain.DeleteImagesRequest
-	// Декодируем JSON массив имен файлов
+
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		responseHTTP.JSONError(w, http.StatusBadRequest, "Невірний формат запиту")
+		slog.Debug("Неправильный формат запроса:", "error", err.Error())
+		responseHTTP.JSONError(w, "Неправильный формат запроса", http.StatusBadRequest)
 		return
 	}
 
@@ -88,39 +91,41 @@ func (h *ImagesHandler) DeleteImages(w http.ResponseWriter, r *http.Request) {
 	for _, filename := range req.Filenames {
 		err := h.service.DeleteImage("images/", filename)
 		if err != nil {
-			slog.Info("Не вдалося видалити файл: ", "Filename", filename, "Error", err)
+			slog.Debug("Не удалося удалить файл:", "filename", filename, "error", err.Error())
 		} else {
 			deletedCount++
 		}
 	}
 
-	slog.Info("Видалено файлів: " + strconv.Itoa(deletedCount))
-	responseHTTP.JSONError(w, http.StatusOK, "Видалено файлів: "+strconv.Itoa(deletedCount))
+	slog.Info("Удалено файлов: " + strconv.Itoa(deletedCount))
+	responseHTTP.JSONError(w, "Удалено файлов: "+strconv.Itoa(deletedCount), http.StatusOK)
 }
 
 func (h *ImagesHandler) GetAvatar(w http.ResponseWriter, r *http.Request) {
-	fileName := mux.Vars(r)["filename"]
-	filePath := h.service.GetImage("avatars/", fileName)
+	filename := mux.Vars(r)["filename"]
+	filePath := h.service.GetImage("avatars/", filename)
 
 	if filePath == "" {
-		http.Error(w, "Файл не знайдено", http.StatusNotFound)
+		slog.Debug("Файл не найден:", "filepath", filePath)
+		http.Error(w, "Файл не найден", http.StatusNotFound)
 		return
 	}
 
 	http.ServeFile(w, r, filePath)
 }
 
-func (h *ImagesHandler) SaveImage(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseMultipartForm(30 << 20) // 30MB
+func (h *ImagesHandler) SaveAvatar(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseMultipartForm(30 << 20)
 	if err != nil {
-		http.Error(w, "Помилка у формі", http.StatusBadRequest)
+		slog.Debug("Ошибка парсинга формы:", "error", err.Error())
+		http.Error(w, "Ошибка парсинга формы", http.StatusBadRequest)
 		return
 	}
 
 	file, handler, err := r.FormFile("file")
 	if err != nil {
-		slog.Debug("Файл не знайдено у формі:", "error", err.Error())
-		http.Error(w, "Файл не знайдено у формі", http.StatusBadRequest)
+		slog.Debug("Файл отсутсвует в форме:", "error", err.Error())
+		http.Error(w, "Файл отсутсвует в форме", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
@@ -132,25 +137,26 @@ func (h *ImagesHandler) SaveImage(w http.ResponseWriter, r *http.Request) {
 
 	savedName, err := h.service.SaveImage(file, "avatars/", fileName)
 	if err != nil {
-		slog.Info("Помилка при збережені файлу: ", "error", err)
-		http.Error(w, "Помилка при збережені файлу", http.StatusInternalServerError)
+		slog.Info("Ошибка при сохранении файла:", "error", err.Error())
+		http.Error(w, "Ошибка при сохранении файла", http.StatusInternalServerError)
 		return
 	}
 
-	slog.Debug("Файл успішно збережено", "filename", savedName)
+	slog.Debug("Файл успешно сохранён:", "filename", savedName)
 
-	responseHTTP.JSONResp(w, http.StatusCreated, savedName)
+	responseHTTP.JSONResp(w, savedName, http.StatusCreated)
 }
 
 func (h *ImagesHandler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 	var req domain.DeleteAvatarRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Невірний формат запиту", http.StatusBadRequest)
+		slog.Debug("Неправильный формат запроса:", "error", err.Error())
+		http.Error(w, "Неправильный формат запроса", http.StatusBadRequest)
 		return
 	}
 
-	log.Println("Файл успешно сохранен:", savedName)
+	slog.Debug("Файл успешно удалён:", "filename", req.Filename)
 
-	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(savedName))
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(req.Filename))
 }
